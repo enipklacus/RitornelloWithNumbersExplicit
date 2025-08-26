@@ -5,6 +5,10 @@
 %
 %I've co-designed this snippet (with help from ChatGPT and the Lilypond user community - special thanks to Yoshiaki Onishi). I've written the Lilypond code; the Scheme code was made by ChatGPT and Yoshiaki made a suggestion with regards to the markup code (which is implemented).
 %
+%For clarity's sake:
+% 'folScore' = content that appears only in the folded score
+% 'unScore' = content that appears only in the unfolded score
+%
 #(define ritornelloCore-logged? #f)
 %
 ritornelloCore =
@@ -52,25 +56,40 @@ ritornelloCore =
               (markup #:line (#:italic (#:concat ((number->string (+ n 1)) "º" "v.:"))))
               )))))))
             volta-list))
-        )
+        ) ; end of inner of (let*
     ;; Main function body
     #{
-      \repeat volta #voltas {
-        \tag #'(unScore sectionInd) {
-          \volta #'(1) {
-            <>^\markup \bold \italic "Start of theme"
-          }
-        }
-        #music
-        \tag #'(folScore sectionInd) {
-          \textEndMark \markup \bold {\concat { #(number->string voltas) "x" } }
-        }
-        \tag #'(unScore sectionInd) {
-          #@volta-marks }
-      }
-    #}
-  )
- )
+      % If the number of voltas is greater than 1 (as it should be...):
+      #(if (> voltas 1)
+        #{
+          \repeat volta #voltas {
+            \tag #'(unScore sectionInd) {
+              \volta #'(1) {
+                <>^\markup \bold \italic "Start of theme"
+              }
+            }
+            #music
+            % Actions on folded scores below.
+            % 2 (two) returns must not be printed (as in "2x" or something similar); only 3 (three) or more returns must have their numbers printed, so as to maintain clarity.
+            #(if (>= voltas 3)
+               #{ \tag #'(folScore sectionInd) {
+                    \textEndMark \markup \bold {\concat { #(number->string voltas) "x" } }
+                  }
+               #}
+               ;; If less than 2 voltas do nothing.
+                 #{ #}
+               ) % end of actions on folded scores.
+            
+            % Actions on unfolded scores below.
+            \tag #'(unScore sectionInd) { #@volta-marks }
+          } % end of \repeat volta #voltas
+    #} ;; end of condition voltas greater than 1
+    ;; If the number of voltas is 1 it will just print the music expression.
+    #{ #music #} ;; end of else voltas not greater than 1
+    ) % end of main if voltas greater than 1
+      #} ;; end of main body code
+  ) ;; end of outer (let*
+ ) ;; end of (begin
 ) % end function ritornelloCore
 %
 ritornello =
